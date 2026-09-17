@@ -5,6 +5,7 @@ import json
 import socket
 import struct
 import time
+import traceback
 import zlib
 from typing import Dict, List
 
@@ -413,7 +414,12 @@ class ResponddClient:
             else:
                 self.sendUnicast()
             self._timeStart = time.time()
-            self._aps = unifi_client.get_infos()
+            try:
+                self._aps = unifi_client.get_infos()
+            except Exception as ex:
+                logger.error("Error while getting infos from unifi controller: %s" % (ex))
+                print(traceback.format_exc())
+                continue
             if self._aps is None:
                 continue
             if msgSplit[0] == "GET":  # multi_request
