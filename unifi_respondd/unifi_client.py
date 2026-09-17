@@ -136,7 +136,7 @@ def get_location_by_address(address, app, attempts=3):
 def scrape(url):
     """returns remote json"""
     try:
-        return rget(url).json()
+        return rget(url, timeout=60).json()
     except Exception as ex:
         logger.error("Error: %s" % (ex))
 
