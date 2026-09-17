@@ -172,9 +172,26 @@ def get_infos():
         try:
             aps_for_site = c.get_aps()
             clients = c.get_clients()
+            wifis = c.get_wlan_conf()
         except Exception as ex:
             logger.error("Error: %s" % (ex))
             continue
+        wifi2offloader = dict()
+        for wifi in wifis:
+            for client in clients:
+                if wifi.get("networkconf_id", None) == client.get("network_id"):
+                    try:
+                        node = list(
+                            filter(
+                                lambda x: x["mac"] == client.get("mac"),
+                                ffnodes["nodes"],
+                            )
+                        )[0]
+                        if re.search(".*Offloader.*", node.get("hostname", "")):
+                            wifi2offloader[wifi.get("_id")] = node
+                    except:
+                        pass
+
         for ap in aps_for_site:
             if (
                 ap.get("name", None) is not None
@@ -218,6 +235,8 @@ def get_infos():
                             )
                         except Exception:
                             pass
+                    offloader_id = None
+                    offloader = {}
                     try:
                         neighbour_macs.append(cfg.offloader_mac.get(site["desc"], None))
                         offloader_id = cfg.offloader_mac.get(site["desc"], "").replace(
@@ -231,9 +250,15 @@ def get_infos():
                             )
                         )[0]
                     except Exception:
-                        offloader_id = None
-                        offloader = {}
-                        pass
+                        for ssid in ssids:
+                            if re.search(cfg.ssid_regex, ssid.get("essid", "")):
+                                wifi_id = ssid.get("wlanconf_id", None)
+                                if wifi2offloader.get(wifi_id, None) is not None:
+                                    offloader = wifi2offloader.get(wifi_id)
+                                    neighbour_macs.append(offloader.get("mac", None))
+                                    offloader_id = offloader.get("mac", "").replace(
+                                        ":", ""
+                                    )
                     uplink = ap.get("uplink", None)
                     if uplink is not None and uplink.get("ap_mac", None) is not None:
                         neighbour_macs.append(uplink.get("ap_mac"))
